@@ -1,0 +1,6 @@
+[submodule "homepage/themes/hello-friend-ng"]
+	path = homepage/themes/hello-friend-ng
+	url = https://github.com/rhazdon/hugo-theme-hello-friend-ng.git
+[submodule "homepage/themes/hello-friend"]
+	path = homepage/themes/hello-friend
+	url = https://github.com/panr/hugo-theme-hello-friend.git

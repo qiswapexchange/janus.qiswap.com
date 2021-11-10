@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+networks:
+  qtum-mainnet-network:
+volumes:
+  qtumd-mainnet-volume:
+
+services:
+  janus:
+    image: qtum/janus:latest
+    container_name: janus_mainnet
+    build:
+        context: ../janus/
+        cache_from:
+          - golang:1.14-alpine
+    environment:
+        - QTUM_RPC=http://qtum:testpasswd@qtum_mainnet:3889
+        - COMPOSE_PROJECT_NAME=mainnet
+    volumes:
+        - ../janus/docker/standalone/myaccounts.txt:$GOPATH/github.com/qtumproject/janus/myaccounts.txt
+        - ../janus/https:/https
+    depends_on:
+      - qtum
+    command: --bind 0.0.0.0 --port 23889 --ignoreTransactions --accounts $GOPATH/github.com/qtumproject/janus/myaccounts.txt --https-key /https/key.pem --https-cert /https/cert.pem
+    networks:
+      - qtum-mainnet-network
+
+  qtum:
+    image: qtum/qtum
+    container_name: qtum_mainnet
+    environment:
+        - COMPOSE_PROJECT_NAME=mainnet
+    command: qtumd  -chain=main -txindex -addrindex=1 -logevents  -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -printtoconsole -rpcuser=qtum -rpcpassword=testpasswd -deprecatedrpc=accounts
+    volumes:
+      - qtumd-volume-mainnet
+    networks:
+      - qtum-mainnet-network
+
+  nginx:        
+    restart: always
+    container_name: nginx
+    image: nginx:latest
+    environment:
+        - COMPOSE_PROJECT_NAME=mainnet
+    volumes:
+      - ../homepage:/var/www/homepage/
+      - ../nginx/conf.d:/etc/nginx/conf.d
+      - ../nginx/certbot/conf:/etc/letsencrypt
+      - ../nginx/certbot/data:/var/www/certbot
+      - ../nginx/dhparam:/etc/ssl/certs
+    networks:
+      - qtum-mainnet-network
+    ports:
+      - 80:80
+      - 443:443
+
+  certbot:
+    image: certbot/certbot:latest
+    command: certonly --webroot --webroot-path=/var/www/certbot --email alejo@qtum.info --agree-tos --no-eff-email --force-renewal -d janus.qiswap.com
+    volumes:
+        - ../nginx/certbot/conf:/etc/letsencrypt
+        - ../nginx/certbot/logs:/var/log/letsencrypt
+        - ../nginx/certbot/data:/var/www/certbot
+        - ../homepage:/var/www/homepage/
